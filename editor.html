@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memorial Site Builder</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: #f5f3ef;
+        color: #333;
+        line-height: 1.6;
+    }
+
+    header {
+        background: #2c2c3e;
+        color: #fff;
+        text-align: center;
+        padding: 30px 20px;
+    }
+
+    header h1 { font-size: 1.6rem; font-weight: 400; letter-spacing: 1px; }
+    header p { color: rgba(255,255,255,0.6); margin-top: 6px; font-size: 0.95rem; }
+
+    .container {
+        max-width: 800px;
+        margin: 30px auto;
+        padding: 0 20px 60px;
+    }
+
+    .step {
+        background: #fff;
+        border-radius: 10px;
+        padding: 30px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    .step h2 {
+        font-size: 1.2rem;
+        color: #2c2c3e;
+        margin-bottom: 5px;
+    }
+
+    .step .step-desc {
+        color: #888;
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 5px;
+        margin-top: 15px;
+        font-size: 0.95rem;
+    }
+
+    label:first-of-type { margin-top: 0; }
+
+    input[type="text"], input[type="number"], textarea, select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-family: inherit;
+        transition: border-color 0.2s;
+    }
+
+    input:focus, textarea:focus, select:focus {
+        outline: none;
+        border-color: #6c63a8;
+    }
+
+    textarea { min-height: 120px; resize: vertical; }
+
+    .file-upload {
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        padding: 25px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+        margin-top: 5px;
+    }
+
+    .file-upload:hover { border-color: #6c63a8; background: #faf9ff; }
+
+    .file-upload input[type="file"] {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .file-upload .upload-text {
+        color: #888;
+        font-size: 0.95rem;
+    }
+
+    .file-upload .upload-text strong { color: #6c63a8; }
+
+    .file-list {
+        margin-top: 10px;
+        font-size: 0.9rem;
+        color: #555;
+    }
+
+    .file-list .file-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 10px;
+        background: #f8f7f5;
+        border-radius: 4px;
+        margin-bottom: 4px;
+    }
+
+    .file-list .remove-btn {
+        background: none;
+        border: none;
+        color: #c44;
+        cursor: pointer;
+        font-size: 0.85rem;
+    }
+
+    .preview-img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 50%;
+        margin-top: 10px;
+        border: 2px solid #ddd;
+    }
+
+    .row {
+        display: flex;
+        gap: 15px;
+    }
+
+    .row > div { flex: 1; }
+
+    .actions {
+        text-align: center;
+        margin-top: 30px;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 14px 35px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.05rem;
+        cursor: pointer;
+        letter-spacing: 0.5px;
+        transition: all 0.2s;
+        margin: 0 8px;
+    }
+
+    .btn-primary {
+        background: #6c63a8;
+        color: #fff;
+    }
+
+    .btn-primary:hover { background: #5a52a0; }
+
+    .btn-secondary {
+        background: #e8e6e1;
+        color: #555;
+    }
+
+    .btn-secondary:hover { background: #dbd8d2; }
+
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .progress-bar {
+        display: none;
+        margin-top: 15px;
+    }
+
+    .progress-bar .bar {
+        height: 6px;
+        background: #e8e6e1;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .progress-bar .fill {
+        height: 100%;
+        background: #6c63a8;
+        border-radius: 3px;
+        width: 0%;
+        transition: width 0.3s;
+    }
+
+    .progress-bar .status {
+        text-align: center;
+        font-size: 0.9rem;
+        color: #888;
+        margin-top: 8px;
+    }
+
+    .help-text {
+        font-size: 0.85rem;
+        color: #999;
+        margin-top: 4px;
+    }
+
+    @media (max-width: 600px) {
+        .row { flex-direction: column; gap: 0; }
+        .container { padding: 0 12px 40px; }
+        .step { padding: 20px; }
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>Memorial Site Builder</h1>
+    <p>Fill in the details below, upload photos and music, then download your memorial website</p>
+</header>
+
+<div class="container">
+
+    <!-- Step 1: Basic Info -->
+    <div class="step">
+        <h2>Step 1: Basic Information</h2>
+        <p class="step-desc">Enter the name, dates, and a short quote or phrase.</p>
+
+        <label for="fullName">Full Name</label>
+        <input type="text" id="fullName" placeholder="e.g. John Michael Smith">
+
+        <div class="row">
+            <div>
+                <label for="birthDate">Date of Birth</label>
+                <input type="text" id="birthDate" placeholder="e.g. March 15, 1945">
+            </div>
+            <div>
+                <label for="passDate">Date of Passing</label>
+                <input type="text" id="passDate" placeholder="e.g. February 20, 2026">
+            </div>
+        </div>
+
+        <label for="age">Age</label>
+        <input type="text" id="age" placeholder="e.g. 80">
+
+        <label for="cityState">City, State</label>
+        <input type="text" id="cityState" placeholder="e.g. Cincinnati, Ohio">
+
+        <label for="epitaph">Favorite Quote or Short Phrase (optional)</label>
+        <input type="text" id="epitaph" placeholder="e.g. Forever in our hearts">
+
+        <label for="portrait">Portrait Photo</label>
+        <div class="file-upload" id="portraitDrop">
+            <input type="file" id="portrait" accept="image/*" onchange="handlePortrait(this)">
+            <p class="upload-text">Click or drag a <strong>portrait photo</strong> here</p>
+        </div>
+        <img id="portraitPreview" class="preview-img" style="display:none">
+    </div>
+
+    <!-- Step 2: Obituary -->
+    <div class="step">
+        <h2>Step 2: Obituary</h2>
+        <p class="step-desc">Write the obituary text. Use separate paragraphs for different sections.</p>
+
+        <label for="obiIntro">Opening Paragraph</label>
+        <textarea id="obiIntro" placeholder="e.g. John Michael Smith, age 80, of Cincinnati, Ohio, passed away peacefully on February 20, 2026, surrounded by his loving family."></textarea>
+
+        <label for="obiEarly">Early Life</label>
+        <textarea id="obiEarly" placeholder="e.g. He was born on March 15, 1945 in Columbus, Ohio to Robert and Mary Smith. John grew up in Columbus and graduated from Ohio State University in 1967."></textarea>
+
+        <label for="obiLife">Life & Personality</label>
+        <textarea id="obiLife" placeholder="e.g. John was known for his warm smile and generous spirit. He enjoyed woodworking, fishing, and spending weekends with his grandchildren. He had a gift for making everyone around him feel welcome."></textarea>
+
+        <label for="obiCareer">Career (optional)</label>
+        <textarea id="obiCareer" placeholder="e.g. John dedicated 35 years to Smith & Sons Construction, where he rose from apprentice to company president. He was respected by everyone who worked with him."></textarea>
+
+        <label for="obiFamily">Survived By</label>
+        <textarea id="obiFamily" placeholder="e.g. He is survived by his wife of 52 years, Margaret; his children, David (Lisa), Susan (Mark), and James; his 8 grandchildren; and his brother, Robert. He was preceded in death by his parents and his sister, Dorothy."></textarea>
+
+        <label for="obiClosing">Closing (optional)</label>
+        <textarea id="obiClosing" placeholder="e.g. John will be deeply missed by all who knew him. His legacy of love and kindness will live on in the hearts of his family and friends."></textarea>
+    </div>
+
+    <!-- Step 3: Service Details -->
+    <div class="step">
+        <h2>Step 3: Service Details</h2>
+        <p class="step-desc">Enter the visitation, funeral, and burial information. Leave blank to skip any section.</p>
+
+        <h3 style="margin-top:10px; font-size:1rem; color:#6c63a8;">Visitation</h3>
+        <div class="row">
+            <div>
+                <label for="visDate">Date</label>
+                <input type="text" id="visDate" placeholder="e.g. Friday, February 22, 2026">
+            </div>
+            <div>
+                <label for="visTime">Time</label>
+                <input type="text" id="visTime" placeholder="e.g. 4:00 PM - 8:00 PM">
+            </div>
+        </div>
+        <label for="visLocation">Location</label>
+        <input type="text" id="visLocation" placeholder="e.g. Smith Funeral Home, 123 Main St, Cincinnati, OH">
+
+        <h3 style="margin-top:25px; font-size:1rem; color:#6c63a8;">Funeral Service</h3>
+        <div class="row">
+            <div>
+                <label for="funDate">Date</label>
+                <input type="text" id="funDate" placeholder="e.g. Saturday, February 23, 2026">
+            </div>
+            <div>
+                <label for="funTime">Time</label>
+                <input type="text" id="funTime" placeholder="e.g. 10:00 AM">
+            </div>
+        </div>
+        <label for="funLocation">Location</label>
+        <input type="text" id="funLocation" placeholder="e.g. St. Mary's Church, 456 Oak Ave, Cincinnati, OH">
+
+        <h3 style="margin-top:25px; font-size:1rem; color:#6c63a8;">Burial</h3>
+        <label for="burLocation">Location</label>
+        <input type="text" id="burLocation" placeholder="e.g. Spring Grove Cemetery, Cincinnati, OH">
+    </div>
+
+    <!-- Step 4: Slideshow Photos -->
+    <div class="step">
+        <h2>Step 4: Slideshow Photos</h2>
+        <p class="step-desc">Upload the photos for the slideshow. They will appear in the order shown below. You can reorder by removing and re-adding.</p>
+
+        <label>Photos</label>
+        <div class="file-upload" id="photosDrop">
+            <input type="file" id="photos" accept="image/*" multiple onchange="handlePhotos(this)">
+            <p class="upload-text">Click or drag <strong>photos</strong> here (select multiple)</p>
+        </div>
+        <div class="file-list" id="photosList"></div>
+
+        <label for="slideDuration" style="margin-top:20px">Seconds per photo</label>
+        <select id="slideDuration">
+            <option value="5">5 seconds</option>
+            <option value="8" selected>8 seconds (recommended)</option>
+            <option value="10">10 seconds</option>
+            <option value="12">12 seconds</option>
+        </select>
+    </div>
+
+    <!-- Step 5: Music -->
+    <div class="step">
+        <h2>Step 5: Background Music (optional)</h2>
+        <p class="step-desc">Upload an MP3 file to play during the slideshow.</p>
+
+        <label>Music File</label>
+        <div class="file-upload" id="musicDrop">
+            <input type="file" id="music" accept="audio/*" onchange="handleMusic(this)">
+            <p class="upload-text">Click or drag an <strong>MP3 file</strong> here</p>
+        </div>
+        <div class="file-list" id="musicList"></div>
+        <p class="help-text">The music will loop continuously during the slideshow.</p>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+        <button class="btn btn-secondary" onclick="previewSite()">Preview Obituary</button>
+        <button class="btn btn-primary" onclick="downloadSite()">Download Site</button>
+    </div>
+
+    <div class="progress-bar" id="progressBar">
+        <div class="bar"><div class="fill" id="progressFill"></div></div>
+        <p class="status" id="progressStatus">Preparing...</p>
+    </div>
+
+</div>
+
+<script>
+    // --- File storage ---
+    let portraitFile = null;
+    let photoFiles = [];
+    let musicFile = null;
+
+    function handlePortrait(input) {
+        if (input.files.length > 0) {
+            portraitFile = input.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = document.getElementById('portraitPreview');
+                img.src = e.target.result;
+                img.style.display = 'block';
+            };
+            reader.readAsDataURL(portraitFile);
+            input.closest('.file-upload').querySelector('.upload-text').innerHTML =
+                '<strong>' + portraitFile.name + '</strong>';
+        }
+    }
+
+    function handlePhotos(input) {
+        for (const file of input.files) {
+            photoFiles.push(file);
+        }
+        renderPhotoList();
+    }
+
+    function removePhoto(index) {
+        photoFiles.splice(index, 1);
+        renderPhotoList();
+    }
+
+    function renderPhotoList() {
+        const list = document.getElementById('photosList');
+        if (photoFiles.length === 0) {
+            list.innerHTML = '';
+            return;
+        }
+        list.innerHTML = photoFiles.map((f, i) =>
+            '<div class="file-item">' +
+            '<span>' + (i + 1) + '. ' + f.name + ' (' + (f.size / 1024 / 1024).toFixed(1) + ' MB)</span>' +
+            '<button class="remove-btn" onclick="removePhoto(' + i + ')">Remove</button>' +
+            '</div>'
+        ).join('');
+    }
+
+    function handleMusic(input) {
+        if (input.files.length > 0) {
+            musicFile = input.files[0];
+            document.getElementById('musicList').innerHTML =
+                '<div class="file-item"><span>' + musicFile.name +
+                ' (' + (musicFile.size / 1024 / 1024).toFixed(1) + ' MB)</span>' +
+                '<button class="remove-btn" onclick="removeMusic()">Remove</button></div>';
+        }
+    }
+
+    function removeMusic() {
+        musicFile = null;
+        document.getElementById('musicList').innerHTML = '';
+        document.getElementById('music').value = '';
+    }
+
+    // --- Read file as base64 ---
+    function readFileAsBase64(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // --- Get form values ---
+    function getValues() {
+        return {
+            fullName: document.getElementById('fullName').value || '[FULL NAME]',
+            birthDate: document.getElementById('birthDate').value || '[BIRTH DATE]',
+            passDate: document.getElementById('passDate').value || '[PASSING DATE]',
+            age: document.getElementById('age').value || '[AGE]',
+            cityState: document.getElementById('cityState').value || '[CITY, STATE]',
+            epitaph: document.getElementById('epitaph').value || '',
+            obiIntro: document.getElementById('obiIntro').value || '',
+            obiEarly: document.getElementById('obiEarly').value || '',
+            obiLife: document.getElementById('obiLife').value || '',
+            obiCareer: document.getElementById('obiCareer').value || '',
+            obiFamily: document.getElementById('obiFamily').value || '',
+            obiClosing: document.getElementById('obiClosing').value || '',
+            visDate: document.getElementById('visDate').value || '',
+            visTime: document.getElementById('visTime').value || '',
+            visLocation: document.getElementById('visLocation').value || '',
+            funDate: document.getElementById('funDate').value || '',
+            funTime: document.getElementById('funTime').value || '',
+            funLocation: document.getElementById('funLocation').value || '',
+            burLocation: document.getElementById('burLocation').value || '',
+            slideDuration: document.getElementById('slideDuration').value,
+        };
+    }
+
+    // --- Build obituary HTML ---
+    function buildObituaryHTML(v, portraitData) {
+        const paragraphs = [v.obiIntro, v.obiEarly, v.obiLife, v.obiCareer, v.obiFamily, v.obiClosing]
+            .filter(p => p.trim())
+            .map(p => '            <p>' + escapeHTML(p) + '</p>')
+            .join('\n');
+
+        const portraitTag = portraitData
+            ? '<img class="portrait" src="' + portraitData + '" alt="Portrait of ' + escapeHTML(v.fullName) + '">'
+            : '';
+
+        const epitaphTag = v.epitaph
+            ? '<p class="epitaph">"' + escapeHTML(v.epitaph) + '"</p>'
+            : '';
+
+        // Service cards
+        let serviceCards = '';
+
+        if (v.visDate || v.visTime || v.visLocation) {
+            serviceCards += buildServiceCard('Visitation', v.visDate, v.visTime, v.visLocation);
+        }
+        if (v.funDate || v.funTime || v.funLocation) {
+            serviceCards += buildServiceCard('Funeral Service', v.funDate, v.funTime, v.funLocation);
+        }
+        if (v.burLocation) {
+            serviceCards += `
+            <div class="service-card">
+                <h3>Burial</h3>
+                <div class="detail">
+                    <span class="label">Location</span>
+                    <span class="value">${escapeHTML(v.burLocation)}</span>
+                </div>
+            </div>`;
+        }
+
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>In Loving Memory of ${escapeHTML(v.fullName)}</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: 'Georgia', 'Times New Roman', serif;
+        background: #1a1a2e;
+        color: #e0d8cc;
+        line-height: 1.8;
+    }
+    .hero {
+        text-align: center;
+        padding: 60px 20px 40px;
+        background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%);
+    }
+    .hero .portrait {
+        width: 200px; height: 200px;
+        border-radius: 50%; object-fit: cover;
+        border: 3px solid rgba(212,195,168,0.4);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        margin-bottom: 25px;
+    }
+    .hero h1 {
+        font-size: 2.4rem; color: #fff;
+        letter-spacing: 3px; margin-bottom: 8px; font-weight: 400;
+    }
+    .hero .dates {
+        font-size: 1.15rem; color: rgba(212,195,168,0.7);
+        letter-spacing: 2px; margin-bottom: 15px;
+    }
+    .hero .epitaph {
+        font-style: italic; color: rgba(212,195,168,0.55);
+        font-size: 1.05rem; max-width: 500px; margin: 0 auto;
+    }
+    nav {
+        text-align: center; padding: 20px;
+        background: rgba(0,0,0,0.25);
+        border-top: 1px solid rgba(212,195,168,0.1);
+        border-bottom: 1px solid rgba(212,195,168,0.1);
+    }
+    nav a {
+        color: #d4c3a8; text-decoration: none;
+        margin: 0 20px; font-size: 1rem;
+        letter-spacing: 1.5px; text-transform: uppercase;
+        transition: color 0.3s;
+    }
+    nav a:hover { color: #fff; }
+    .content {
+        max-width: 740px; margin: 0 auto;
+        padding: 50px 25px 60px;
+    }
+    .section { margin-bottom: 50px; }
+    .section h2 {
+        font-size: 1.4rem; color: #d4c3a8;
+        letter-spacing: 2px; text-transform: uppercase;
+        margin-bottom: 20px; padding-bottom: 10px;
+        border-bottom: 1px solid rgba(212,195,168,0.2);
+        font-weight: 400;
+    }
+    .section p {
+        margin-bottom: 16px; font-size: 1.05rem;
+        color: rgba(224,216,204,0.85);
+    }
+    .service-card {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(212,195,168,0.15);
+        border-radius: 8px; padding: 30px; margin-bottom: 16px;
+    }
+    .service-card h3 {
+        font-size: 1.15rem; color: #d4c3a8;
+        margin-bottom: 12px; font-weight: 400;
+    }
+    .service-card .detail { display: flex; margin-bottom: 8px; font-size: 1rem; }
+    .service-card .label { width: 100px; color: rgba(212,195,168,0.6); flex-shrink: 0; }
+    .service-card .value { color: #e0d8cc; }
+    .slideshow-link {
+        display: block; text-align: center; margin: 40px auto;
+        padding: 18px 40px;
+        background: rgba(212,195,168,0.1);
+        border: 1px solid rgba(212,195,168,0.3);
+        border-radius: 6px; color: #d4c3a8;
+        text-decoration: none; font-size: 1.1rem;
+        letter-spacing: 2px; text-transform: uppercase;
+        transition: all 0.3s; max-width: 360px;
+    }
+    .slideshow-link:hover { background: rgba(212,195,168,0.2); color: #fff; }
+    footer {
+        text-align: center; padding: 30px 20px;
+        color: rgba(212,195,168,0.3); font-size: 0.85rem;
+        border-top: 1px solid rgba(212,195,168,0.08);
+    }
+    @media (max-width: 600px) {
+        .hero h1 { font-size: 1.8rem; }
+        .hero .portrait { width: 150px; height: 150px; }
+        .service-card .detail { flex-direction: column; }
+        .service-card .label { width: auto; margin-bottom: 2px; }
+    }
+</style>
+</head>
+<body>
+    <div class="hero">
+        ${portraitTag}
+        <h1>${escapeHTML(v.fullName)}</h1>
+        <p class="dates">${escapeHTML(v.birthDate)} &mdash; ${escapeHTML(v.passDate)}</p>
+        ${epitaphTag}
+    </div>
+    <nav>
+        <a href="#obituary">Obituary</a>
+        <a href="#services">Services</a>
+        <a href="slideshow.html">Photo Slideshow</a>
+    </nav>
+    <div class="content">
+        <div class="section" id="obituary">
+            <h2>Obituary</h2>
+${paragraphs}
+        </div>
+        <div class="section" id="services">
+            <h2>Service Details</h2>
+${serviceCards}
+        </div>
+        <a class="slideshow-link" href="slideshow.html">View Photo Slideshow</a>
+    </div>
+    <footer>In Loving Memory of ${escapeHTML(v.fullName)}</footer>
+</body>
+</html>`;
+    }
+
+    function buildServiceCard(title, date, time, location) {
+        let rows = '';
+        if (date) rows += `
+                <div class="detail"><span class="label">Date</span><span class="value">${escapeHTML(date)}</span></div>`;
+        if (time) rows += `
+                <div class="detail"><span class="label">Time</span><span class="value">${escapeHTML(time)}</span></div>`;
+        if (location) rows += `
+                <div class="detail"><span class="label">Location</span><span class="value">${escapeHTML(location)}</span></div>`;
+        return `
+            <div class="service-card">
+                <h3>${escapeHTML(title)}</h3>${rows}
+            </div>`;
+    }
+
+    // --- Build slideshow HTML ---
+    function buildSlideshowHTML(imageDataArray, musicData, duration, title, fade) {
+        const imagesJS = imageDataArray.map(d => '        "' + d + '"').join(',\n');
+
+        let audioTag = '';
+        if (musicData) {
+            audioTag = `
+    <audio id="bgmusic" loop autoplay>
+        <source src="${musicData}">
+    </audio>`;
+        }
+
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHTML(title)}</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; font-family: 'Georgia', serif; cursor: none; }
+    #slideshow { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; }
+    .slide { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity ${fade}s ease-in-out; }
+    .slide.active { opacity: 1; }
+    .slide img { max-width: 92%; max-height: 85vh; object-fit: contain; border-radius: 4px; box-shadow: 0 8px 40px rgba(0,0,0,0.6); }
+    #title-overlay { position: fixed; bottom: 40px; left: 0; right: 0; text-align: center; color: rgba(255,255,255,0.75); font-size: 1.6rem; letter-spacing: 2px; text-shadow: 0 2px 12px rgba(0,0,0,0.8); pointer-events: none; z-index: 10; }
+    #play-prompt { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; cursor: pointer; }
+    #play-prompt h1 { color: #fff; font-size: 2rem; margin-bottom: 20px; letter-spacing: 2px; }
+    #play-prompt p { color: rgba(255,255,255,0.6); font-size: 1.1rem; }
+    #counter { position: fixed; top: 20px; right: 25px; color: rgba(255,255,255,0.3); font-size: 0.85rem; z-index: 10; pointer-events: none; }
+</style>
+</head>
+<body>
+    ${audioTag}
+    <div id="play-prompt" onclick="startShow()">
+        <h1>${escapeHTML(title)}</h1>
+        <p>Click anywhere to begin</p>
+    </div>
+    <div id="slideshow"></div>
+    <div id="title-overlay">${escapeHTML(title)}</div>
+    <div id="counter"></div>
+<script>
+    const DURATION = ${duration * 1000};
+    const images = [
+${imagesJS}
+    ];
+    let current = 0, slides = [], timer = null;
+    const container = document.getElementById('slideshow');
+    images.forEach((src, i) => {
+        const div = document.createElement('div');
+        div.className = 'slide' + (i === 0 ? ' active' : '');
+        const img = document.createElement('img');
+        img.src = src;
+        div.appendChild(img);
+        container.appendChild(div);
+        slides.push(div);
+    });
+    function updateCounter() { document.getElementById('counter').textContent = (current+1)+' / '+slides.length; }
+    function nextSlide() { slides[current].classList.remove('active'); current = (current+1)%slides.length; slides[current].classList.add('active'); updateCounter(); }
+    function startShow() {
+        document.getElementById('play-prompt').style.display = 'none';
+        const a = document.getElementById('bgmusic');
+        if (a) a.play().catch(()=>{});
+        updateCounter();
+        timer = setInterval(nextSlide, DURATION);
+    }
+    let paused = false;
+    document.addEventListener('keydown', (e) => {
+        if (e.code==='Space') { e.preventDefault(); if(paused){timer=setInterval(nextSlide,DURATION);}else{clearInterval(timer);} paused=!paused; }
+        else if (e.code==='ArrowRight') { clearInterval(timer); nextSlide(); if(!paused) timer=setInterval(nextSlide,DURATION); }
+        else if (e.code==='ArrowLeft') { clearInterval(timer); slides[current].classList.remove('active'); current=(current-1+slides.length)%slides.length; slides[current].classList.add('active'); updateCounter(); if(!paused) timer=setInterval(nextSlide,DURATION); }
+        else if (e.code==='Escape') { document.body.style.cursor = document.body.style.cursor==='default'?'none':'default'; }
+    });
+</script>
+</body>
+</html>`;
+    }
+
+    function escapeHTML(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // --- Preview ---
+    async function previewSite() {
+        const v = getValues();
+        let portraitData = null;
+        if (portraitFile) portraitData = await readFileAsBase64(portraitFile);
+        const html = buildObituaryHTML(v, portraitData);
+        const blob = new Blob([html], { type: 'text/html' });
+        window.open(URL.createObjectURL(blob), '_blank');
+    }
+
+    // --- Download ---
+    async function downloadSite() {
+        const v = getValues();
+        const bar = document.getElementById('progressBar');
+        const fill = document.getElementById('progressFill');
+        const status = document.getElementById('progressStatus');
+        bar.style.display = 'block';
+        fill.style.width = '5%';
+        status.textContent = 'Reading portrait...';
+
+        try {
+            const zip = new JSZip();
+
+            // Portrait
+            let portraitData = null;
+            if (portraitFile) {
+                portraitData = await readFileAsBase64(portraitFile);
+            }
+            fill.style.width = '15%';
+            status.textContent = 'Building obituary page...';
+
+            // Obituary page
+            const obHTML = buildObituaryHTML(v, portraitData);
+            zip.file('index.html', obHTML);
+            fill.style.width = '25%';
+
+            // Slideshow photos
+            if (photoFiles.length > 0) {
+                status.textContent = 'Processing photos (0/' + photoFiles.length + ')...';
+                const imageDataArray = [];
+                for (let i = 0; i < photoFiles.length; i++) {
+                    const data = await readFileAsBase64(photoFiles[i]);
+                    imageDataArray.push(data);
+                    const pct = 25 + Math.round((i + 1) / photoFiles.length * 50);
+                    fill.style.width = pct + '%';
+                    status.textContent = 'Processing photos (' + (i+1) + '/' + photoFiles.length + ')...';
+                }
+
+                // Music
+                let musicData = null;
+                if (musicFile) {
+                    status.textContent = 'Processing music...';
+                    musicData = await readFileAsBase64(musicFile);
+                }
+                fill.style.width = '80%';
+
+                status.textContent = 'Building slideshow...';
+                const title = 'In Loving Memory of ' + v.fullName;
+                const slideHTML = buildSlideshowHTML(
+                    imageDataArray, musicData,
+                    parseInt(v.slideDuration), title, 1.5
+                );
+                zip.file('slideshow.html', slideHTML);
+            }
+
+            fill.style.width = '90%';
+            status.textContent = 'Creating zip file...';
+
+            const blob = await zip.generateAsync({ type: 'blob' });
+            fill.style.width = '100%';
+            status.textContent = 'Done! Downloading...';
+
+            // Download
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            const safeName = v.fullName.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
+            a.download = 'memorial_' + safeName + '.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            setTimeout(() => {
+                status.textContent = 'Download complete! Send this zip file to your site host.';
+            }, 500);
+
+        } catch (err) {
+            status.textContent = 'Error: ' + err.message;
+            console.error(err);
+        }
+    }
+
+    // --- Auto-save to localStorage ---
+    function autoSave() {
+        const fields = ['fullName','birthDate','passDate','age','cityState','epitaph',
+            'obiIntro','obiEarly','obiLife','obiCareer','obiFamily','obiClosing',
+            'visDate','visTime','visLocation','funDate','funTime','funLocation',
+            'burLocation','slideDuration'];
+        const data = {};
+        fields.forEach(id => { data[id] = document.getElementById(id).value; });
+        localStorage.setItem('memorial_editor_data', JSON.stringify(data));
+    }
+
+    function autoLoad() {
+        try {
+            const data = JSON.parse(localStorage.getItem('memorial_editor_data'));
+            if (!data) return;
+            Object.keys(data).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = data[id];
+            });
+        } catch(e) {}
+    }
+
+    // Auto-save every 5 seconds
+    autoLoad();
+    setInterval(autoSave, 5000);
+</script>
+
+</body>
+</html>
